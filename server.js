@@ -6,7 +6,7 @@ const app = express();
 const port = 3000;
 const db = new pg.Client({
     user: "postgres",
-    password: "...",
+    password: "xxxxxx",
     host: "localhost",
     port: 5432,
     database: "dashboard",
@@ -35,22 +35,33 @@ app.get("/customers/count", async (req, res)=>{
     }
 });
 
-app.get("/customers", async (req, res)=>{
+app.get("/customers", async(req, res)=>{
+    console.log("Retrieving data from the CUSTOMERS table...");
     try{
         const page = Number(req.query.page) || 1;
         const limit = 10;
         const offset = (page - 1) * limit;
-        const result = await db.query(
+
+        const customers = await db.query(
             "SELECT * FROM customers ORDER BY id LIMIT $1 OFFSET $2",
             [limit, offset]
         );
+        const count = await db.query(
+            "SELECT count(*) FROM customers"
+        );
+        const totalCustomers = Number(count.rows[0].count);
+        const totalPages = Math.ceil(totalCustomers / limit);
 
-        res.json(result.rows);
+        res.status(200).json({
+            customers: customers.rows,
+            currentPage: page,
+            totalPages: totalPages
+        });
     }
     catch(err){
         res.status(500).json({
-        error: "Internal server error",
-        message: err.message
+            error: "Internal server error",
+            message: err.message
         });
     }
 });
